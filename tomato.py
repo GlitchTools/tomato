@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python
 
 import argparse, os, re, random, struct
 from itertools import chain
@@ -9,7 +9,7 @@ print "| |_ ___  _ __ ___   __ _| |_ ___  "
 print "| __/ _ \| '_ ` _ \ / _` | __/ _ \ "
 print "| || (_) | | | | | | (_| | || (_) |"
 print " \__\___/|_| |_| |_|\__,_|\__\___/ "
-print "tomato.py v1.1 last update 19.07.2017"
+print "tomato.py v1.3 last update 12.10.2017"
 print "\\\\ Audio Video Interleave index breaker"
 print " "
 print "\"je demande a ce qu'on tienne pour un cretin"
@@ -40,6 +40,13 @@ mode = args.modevalue
 countframes = args.countframes
 positframes = args.positframes
 
+#######################
+### HELPER FUNCTION ###
+#######################
+
+def constrain(val, min_val, max_val):
+    return min(max_val, max(min_val, val))
+
 ####################
 ### OPENING FILE ###
 ####################
@@ -61,7 +68,8 @@ with open(filein,'rb') as rd:
 				rd.seek(0)
 				wr.write(rd.read(pos)) # start the read at the beginning again,
 				wr.write(split[0])  # spit out data up to this point plus the stuff before idx
-				idx = split[1] + rd.read()
+                                rd.seek(len(split[0])+4,1)
+				idx = rd.read()
 				break
 
 		if len(idx) == 0:
@@ -77,7 +85,7 @@ with open(filein,'rb') as rd:
 	n = 16
 	first_frame, idx = idx[:n], idx[n:]
 	check = bytearray()
-	check.extend(first_frame)
+ 	check.extend(first_frame)
 	#print([i for i in check])
 	## put all frames in array ignoring sound frames
 	regex = re.compile(b'.*wb.*')
@@ -95,7 +103,6 @@ with open(filein,'rb') as rd:
 	if mode == "void":
 		print "### MODE - VOID"
 		print "##################\n"
-
 		print "not doing shit"
 
 	if mode == "shuffle":
@@ -103,6 +110,14 @@ with open(filein,'rb') as rd:
 		print "##################\n"
 		idx = random.sample(idx,number_of_frames)
 
+        if mode == "jiggle":
+                print "### MODE - JIGGLE"
+		print "##################\n"
+
+                l = len(idx)-1
+                amount = int(positframes)
+                idx = [idx[constrain(x+int(random.gauss(0,amount)),0,l)] for x in range(0,len(idx))]
+                
 	if mode == "ikill":
 		print "### MODE - IKILL"
 		print "##################\n"
@@ -147,10 +162,20 @@ with open(filein,'rb') as rd:
 		pulseryt = int(positframes)
 
 		idx = [[x for j in range(pulselen)] if not i%pulseryt else x for i,x in enumerate(idx)]
-		idx = [item for sublist in idx for item in sublist]
+		idx = [item for sublist in idx for item in sublist] #flattens the list
 		idx = ''.join(idx)
 		idx = [idx[i:i+n] for i in range(0, len(idx), n)]
 
+        if mode == "overlapped":
+                print "### MODE - OVERLAPPED"
+                print "##################\n"
+
+		pulselen = int(countframes)
+		pulseryt = int(positframes)
+
+                idx = [idx[i:i+pulselen] for i in range(0,len(idx),pulseryt)]
+                idx = [item for sublist in idx for item in sublist]
+                
 	if mode == "reverse":
 		print "### MODE - REVERSE"
 		print "##################\n"
@@ -185,7 +210,9 @@ with open(filein,'rb') as rd:
 	wr.write(data)
 	wr.close()
 
-	print "Your file has been saved <3 remember to bake it !\n"
+	print "Your file has been saved <3\n"
+	print "Prefer VLC to view your unstable video file"
+	print "But don't forget to bake it ! :)"
 
 #############
 ### DEBUG ###
